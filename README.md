@@ -1,6 +1,7 @@
 # ECharts Widget for Zabbix - [Monzphere](https://monzphere.com)
 
 This module adds a customizable widget to Zabbix that allows creating interactive charts using the ECharts library.
+
 ![views](https://komarev.com/ghpvc/?username=matheusandrade&repo=https://github.com/Monzphere/Echarts-Zabbix) 
 ![Stars](https://img.shields.io/github/stars/Monzphere/Echarts-Zabbix?style=social)
 ![Forks](https://img.shields.io/github/forks/Monzphere/Echarts-Zabbix?style=social)
