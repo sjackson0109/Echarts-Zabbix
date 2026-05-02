@@ -210,7 +210,7 @@ The widget automatically formats values based on item units:
 | `B`, `KB`, `MB`, `GB`, `TB` | Binary byte scale (÷ 1024) |
 | `/s` suffix | Rate, formatted as bits/sec |
 | `%` | Percentage with 2 decimal places |
-| Large numbers (≥ 1 K) | K / M / G suffixes |
+| Large numbers (≥ 1,000) | K / M / G suffixes (decimal: 1,000 / 1,000,000 / 1,000,000,000) |
 | Very small numbers (< 0.01) | Scientific notation |
 
 ## ⏰ Temporal Chart Details
