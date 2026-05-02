@@ -83,12 +83,12 @@ class WidgetEcharts extends CWidget {
             dataSources: ['items_history', 'items_meta'],
             supported: true
         },
-        [18]: { chartType: 'bullet',      supported: false, reason: 'Requires structured target data not available in Phase 1.' },
-        [21]: { chartType: 'candlestick', supported: false, reason: 'Requires OHLC data not available in Phase 1.' },
-        [23]: { chartType: 'gantt',       supported: false, reason: 'Requires task start/end data not available in Phase 1.' },
-        [24]: { chartType: 'tree',        supported: false, reason: 'Requires hierarchical relationship data not available in Phase 1.' },
-        [25]: { chartType: 'network',     supported: false, reason: 'Requires network topology data not available in Phase 1.' },
-        [26]: { chartType: 'chord',       supported: false, reason: 'Requires flow/relationship data not available in Phase 1.' }
+        [18]: { chartType: 'bullet',      inputShape: 'item_series', dataSources: ['items_data', 'items_meta'], supported: true },
+        [21]: { chartType: 'candlestick', inputShape: 'time_series', dataSources: ['items_history', 'items_meta'], supported: true },
+        [23]: { chartType: 'gantt',       inputShape: 'item_series', dataSources: ['items_data', 'items_meta'], supported: true },
+        [24]: { chartType: 'tree',        inputShape: 'item_series', dataSources: ['items_data', 'items_meta'], supported: true },
+        [25]: { chartType: 'network',     inputShape: 'item_series', dataSources: ['items_data', 'items_meta'], supported: true },
+        [26]: { chartType: 'chord',       inputShape: 'item_series', dataSources: ['items_data', 'items_meta'], supported: true }
     };
 
     // Constants for trigger severity
@@ -510,17 +510,23 @@ class WidgetEcharts extends CWidget {
                     options = this._createCalendarHeatmap(data);
                     break;
                 case WidgetEcharts.DISPLAY_TYPE_BULLET:
+                    options = this._createBulletChart(data);
+                    break;
                 case WidgetEcharts.DISPLAY_TYPE_CANDLESTICK:
+                    options = this._createCandlestickChart(data);
+                    break;
                 case WidgetEcharts.DISPLAY_TYPE_GANTT:
+                    options = this._createGanttChart(data);
+                    break;
                 case WidgetEcharts.DISPLAY_TYPE_TREE:
+                    options = this._createTreeDiagram(data);
+                    break;
                 case WidgetEcharts.DISPLAY_TYPE_GRAPH:
-                case WidgetEcharts.DISPLAY_TYPE_CHORD: {
-                    const cap = WidgetEcharts.CHART_CAPABILITIES[displayType];
-                    const chartName = cap ? cap.chartType : `type-${displayType}`;
-                    const reason = cap ? cap.reason : 'Chart type not supported in Phase 1.';
-                    this._showChartError(`Chart type "${chartName}" is not available: ${reason}`);
-                    return;
-                }
+                    options = this._createNetworkDiagram(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_CHORD:
+                    options = this._createChordDiagram(data);
+                    break;
                 default:
                     console.error('Unsupported chart type:', displayType);
                     return;
