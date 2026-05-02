@@ -156,9 +156,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 		$display_type = $this->fields_values['display_type'] ?? WidgetForm::DISPLAY_TYPE_GAUGE;
 		if ($display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_LINE || 
 			$display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_AREA ||
-			$display_type == WidgetForm::DISPLAY_TYPE_AREA_RAINFALL ||
-			$display_type == WidgetForm::DISPLAY_TYPE_CANDLESTICK ||
-			$display_type == WidgetForm::DISPLAY_TYPE_CALENDAR) {
+			$display_type == WidgetForm::DISPLAY_TYPE_AREA_RAINFALL) {
 			
 			$items_history = $this->getHistoricalData($db_items);
 			$data['items_history'] = $items_history;
@@ -301,9 +299,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 		$display_type = $this->fields_values['display_type'] ?? WidgetForm::DISPLAY_TYPE_GAUGE;
 		if (($display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_LINE || 
 			 $display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_AREA ||
-			 $display_type == WidgetForm::DISPLAY_TYPE_AREA_RAINFALL ||
-			 $display_type == WidgetForm::DISPLAY_TYPE_CANDLESTICK ||
-			 $display_type == WidgetForm::DISPLAY_TYPE_CALENDAR) &&
+			 $display_type == WidgetForm::DISPLAY_TYPE_AREA_RAINFALL) &&
 			!empty($this->fields_values['time_period']) &&
 			isset($this->fields_values['time_period']['from']) &&
 			isset($this->fields_values['time_period']['to'])) {
