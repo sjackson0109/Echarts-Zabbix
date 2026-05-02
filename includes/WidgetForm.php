@@ -43,6 +43,19 @@ class WidgetForm extends CWidgetForm {
     public const DISPLAY_TYPE_TEMPORAL_AREA = 12;
     public const DISPLAY_TYPE_AREA_RAINFALL = 13;
     public const DISPLAY_TYPE_SCATTER_EFFECT = 14;
+    public const DISPLAY_TYPE_COLUMN = 15;
+    public const DISPLAY_TYPE_STACKED_BAR = 16;
+    public const DISPLAY_TYPE_DOUGHNUT = 17;
+    public const DISPLAY_TYPE_BULLET = 18;
+    public const DISPLAY_TYPE_RADAR = 19;
+    public const DISPLAY_TYPE_HEATMAP = 20;
+    public const DISPLAY_TYPE_CANDLESTICK = 21;
+    public const DISPLAY_TYPE_BUBBLE = 22;
+    public const DISPLAY_TYPE_GANTT = 23;
+    public const DISPLAY_TYPE_TREE = 24;
+    public const DISPLAY_TYPE_GRAPH = 25;
+    public const DISPLAY_TYPE_CHORD = 26;
+    public const DISPLAY_TYPE_CALENDAR = 27;
 
     public const UNIT_TYPE_NONE = 0;
     public const UNIT_TYPE_PERCENTAGE = 1;
@@ -82,7 +95,20 @@ class WidgetForm extends CWidgetForm {
                 self::DISPLAY_TYPE_TEMPORAL_LINE => _('Temporal Line Chart'),
                 self::DISPLAY_TYPE_TEMPORAL_AREA => _('Temporal Area Chart'),
                 self::DISPLAY_TYPE_AREA_RAINFALL => _('Area Rainfall Chart'),
-                self::DISPLAY_TYPE_SCATTER_EFFECT => _('Scatter Effect Chart')
+                self::DISPLAY_TYPE_SCATTER_EFFECT => _('Scatter Effect Chart'),
+                self::DISPLAY_TYPE_COLUMN => _('Vertical Column Chart'),
+                self::DISPLAY_TYPE_STACKED_BAR => _('Stacked Bar Chart'),
+                self::DISPLAY_TYPE_DOUGHNUT => _('Doughnut Chart'),
+                self::DISPLAY_TYPE_BULLET => _('Bullet Graph'),
+                self::DISPLAY_TYPE_RADAR => _('Radar Chart'),
+                self::DISPLAY_TYPE_HEATMAP => _('Heat Map'),
+                self::DISPLAY_TYPE_CANDLESTICK => _('Candlestick Chart'),
+                self::DISPLAY_TYPE_BUBBLE => _('Bubble Chart'),
+                self::DISPLAY_TYPE_GANTT => _('Gantt Chart'),
+                self::DISPLAY_TYPE_TREE => _('Tree Diagram'),
+                self::DISPLAY_TYPE_GRAPH => _('Network Diagram'),
+                self::DISPLAY_TYPE_CHORD => _('Chord Diagram'),
+                self::DISPLAY_TYPE_CALENDAR => _('Calendar Heat Map')
             ]))
                 ->setDefault(self::DISPLAY_TYPE_GAUGE)
                 ->setFlags(CWidgetField::FLAG_NOT_EMPTY)

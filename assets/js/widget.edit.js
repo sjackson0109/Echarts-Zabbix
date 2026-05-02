@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (displayTypeSelect) {
 			const updateFields = function() {
 				const displayType = parseInt(displayTypeSelect.value);
-				const temporalTypes = [11, 12]; // TEMPORAL_LINE e TEMPORAL_AREA
+				const temporalTypes = [11, 12, 23, 27]; // TEMPORAL_LINE, TEMPORAL_AREA, GANTT, CALENDAR
 				const isTemporalChart = temporalTypes.includes(displayType);
 				
 				// Campos específicos para gráficos temporais
