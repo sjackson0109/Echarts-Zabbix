@@ -43,19 +43,6 @@ class WidgetForm extends CWidgetForm {
     public const DISPLAY_TYPE_TEMPORAL_AREA = 12;
     public const DISPLAY_TYPE_AREA_RAINFALL = 13;
     public const DISPLAY_TYPE_SCATTER_EFFECT = 14;
-    public const DISPLAY_TYPE_COLUMN = 15;
-    public const DISPLAY_TYPE_STACKED_BAR = 16;
-    public const DISPLAY_TYPE_DOUGHNUT = 17;
-    public const DISPLAY_TYPE_BULLET = 18;
-    public const DISPLAY_TYPE_RADAR = 19;
-    public const DISPLAY_TYPE_HEATMAP = 20;
-    public const DISPLAY_TYPE_CANDLESTICK = 21;
-    public const DISPLAY_TYPE_BUBBLE = 22;
-    public const DISPLAY_TYPE_GANTT = 23;
-    public const DISPLAY_TYPE_TREE = 24;
-    public const DISPLAY_TYPE_GRAPH = 25;
-    public const DISPLAY_TYPE_CHORD = 26;
-    public const DISPLAY_TYPE_CALENDAR = 27;
 
     public const UNIT_TYPE_NONE = 0;
     public const UNIT_TYPE_PERCENTAGE = 1;
