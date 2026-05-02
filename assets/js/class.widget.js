@@ -4249,10 +4249,6 @@ class WidgetEcharts extends CWidget {
     // ─────────────────────────────────────────────────────────────────
 
     /**
-     * Vertical column chart (§4.1)
-     * Maps each item to a vertical bar. Grouped by host when multiple hosts present.
-     */
-    /**
      * Return ECharts options that display an "unsupported chart" notice.
      * Used for Phase 2+ chart types that are not yet implemented.
      * @param {string} message
@@ -4297,6 +4293,10 @@ class WidgetEcharts extends CWidget {
         };
     }
 
+    /**
+     * Vertical column chart
+     * Maps each item to a vertical bar. Grouped by host when multiple hosts present.
+     */
     _createColumnChart(data) {
         const fields = data.fields;
         if (!fields || !fields.length) return null;
@@ -4471,10 +4471,6 @@ class WidgetEcharts extends CWidget {
     }
 
     /**
-     * Bullet graph (§4.3)
-     * Renders one bullet per item: actual value vs configurable target (80% of max) with warning/critical bands.
-     */
-    /**
      * Bullet graph — deferred to Phase 2.
      * Requires explicit target/threshold values not present in Zabbix item data.
      */
@@ -4639,9 +4635,6 @@ class WidgetEcharts extends CWidget {
     }
 
     /**
-     * Candlestick / OHLC chart (§4.6)
-     * Interprets groups of 4 consecutive items per name as open, close, low, high.
-    /**
      * Candlestick / OHLC chart — deferred to Phase 2.
      * Requires genuine open/high/low/close data; fabricating OHLC values from a
      * single latest reading is not permitted.
@@ -4719,8 +4712,6 @@ class WidgetEcharts extends CWidget {
         };
     }
 
-    /**
-     * Gantt chart (§4.7)
     /**
      * Gantt chart — deferred to Phase 2.
      * Requires structured task start/end times and durations.
