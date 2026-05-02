@@ -36,8 +36,106 @@ class WidgetEcharts extends CWidget {
     static DISPLAY_TYPE_GRAPH = 25;
     static DISPLAY_TYPE_CHORD = 26;
     static DISPLAY_TYPE_CALENDAR = 27;
-    
 
+    /**
+     * Phase 1 chart capability model.
+     * Each entry declares the data requirements and fallback behaviour for the
+     * corresponding display type so callers can reason about support without
+     * attempting to render.
+     */
+    static CHART_CAPABILITIES = {
+        15: {
+            chartType: 'column',
+            phase: 1,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'item_values',
+            fallback: 'show_unsupported_input_message'
+        },
+        16: {
+            chartType: 'stacked_bar',
+            phase: 1,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'host_item_matrix',
+            fallback: 'show_unsupported_input_message'
+        },
+        17: {
+            chartType: 'doughnut',
+            phase: 1,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'item_values',
+            fallback: 'show_unsupported_input_message'
+        },
+        19: {
+            chartType: 'radar',
+            phase: 1,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'host_item_matrix',
+            fallback: 'show_unsupported_input_message'
+        },
+        20: {
+            chartType: 'heatmap',
+            phase: 1,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'host_item_matrix',
+            fallback: 'show_unsupported_input_message'
+        },
+        22: {
+            chartType: 'bubble',
+            phase: 1,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'item_values',
+            fallback: 'show_unsupported_input_message'
+        },
+        27: {
+            chartType: 'calendar_heatmap',
+            phase: 1,
+            requires: { latestValues: false, history: true, lld: false, topology: false, geolocation: false },
+            inputShape: 'item_history_by_day',
+            fallback: 'show_unsupported_input_message'
+        },
+        18: {
+            chartType: 'bullet',
+            phase: 2,
+            requires: { latestValues: true, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'item_values_with_targets',
+            fallback: 'show_unsupported_input_message'
+        },
+        21: {
+            chartType: 'candlestick',
+            phase: 2,
+            requires: { latestValues: false, history: true, lld: false, topology: false, geolocation: false },
+            inputShape: 'ohlc_series',
+            fallback: 'show_unsupported_input_message'
+        },
+        23: {
+            chartType: 'gantt',
+            phase: 2,
+            requires: { latestValues: false, history: false, lld: false, topology: false, geolocation: false },
+            inputShape: 'task_time_model',
+            fallback: 'show_unsupported_input_message'
+        },
+        24: {
+            chartType: 'tree',
+            phase: 2,
+            requires: { latestValues: false, history: false, lld: true, topology: false, geolocation: false },
+            inputShape: 'lld_hierarchy',
+            fallback: 'show_unsupported_input_message'
+        },
+        25: {
+            chartType: 'network',
+            phase: 2,
+            requires: { latestValues: false, history: false, lld: false, topology: true, geolocation: false },
+            inputShape: 'topology_graph',
+            fallback: 'show_unsupported_input_message'
+        },
+        26: {
+            chartType: 'chord',
+            phase: 2,
+            requires: { latestValues: false, history: false, lld: false, topology: true, geolocation: false },
+            inputShape: 'dependency_graph',
+            fallback: 'show_unsupported_input_message'
+        }
+    };
 
     // Constants for trigger severity
     static TRIGGER_SEVERITY_COLORS = {
@@ -4154,6 +4252,51 @@ class WidgetEcharts extends CWidget {
      * Vertical column chart (§4.1)
      * Maps each item to a vertical bar. Grouped by host when multiple hosts present.
      */
+    /**
+     * Return ECharts options that display an "unsupported chart" notice.
+     * Used for Phase 2+ chart types that are not yet implemented.
+     * @param {string} message
+     * @returns {Object} ECharts options object
+     */
+    _showUnsupportedMessage(message) {
+        return {
+            graphic: [{
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                    text: message,
+                    font: '14px sans-serif',
+                    fill: '#aaaaaa',
+                    textAlign: 'center'
+                }
+            }],
+            series: []
+        };
+    }
+
+    /**
+     * Return ECharts options that display an input-validation failure notice.
+     * @param {string} message
+     * @returns {Object} ECharts options object
+     */
+    _showValidationError(message) {
+        return {
+            graphic: [{
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                    text: message,
+                    font: '13px sans-serif',
+                    fill: '#fac858',
+                    textAlign: 'center'
+                }
+            }],
+            series: []
+        };
+    }
+
     _createColumnChart(data) {
         const fields = data.fields;
         if (!fields || !fields.length) return null;
@@ -4226,6 +4369,13 @@ class WidgetEcharts extends CWidget {
         // Group by host to form stacked series; categories are item names
         const hosts = [...new Set(fields.map(f => f.host))];
         const categories = [...new Set(fields.map(f => f.name))];
+
+        if (hosts.length < 2 && categories.length < 2) {
+            return this._showValidationError(
+                'Stacked bar chart requires multiple hosts or grouped items.\n' +
+                'Add items from different hosts or with different names.'
+            );
+        }
         const colors = this._getDistributedColors(hosts.length);
 
         const series = hosts.map((host, hi) => ({
@@ -4324,92 +4474,16 @@ class WidgetEcharts extends CWidget {
      * Bullet graph (§4.3)
      * Renders one bullet per item: actual value vs configurable target (80% of max) with warning/critical bands.
      */
+    /**
+     * Bullet graph — deferred to Phase 2.
+     * Requires explicit target/threshold values not present in Zabbix item data.
+     */
     _createBulletChart(data) {
-        const fields = data.fields;
-        if (!fields || !fields.length) return null;
-
-        const isDark = document.body.classList.contains('dark-theme');
-        const textColor = isDark ? '#ffffff' : '#333333';
-        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
-
-        const maxValue = Math.max(...fields.map(f => Math.abs(f.value))) * 1.25 || 100;
-        const categories = fields.map(f => f.name);
-        const actualValues = fields.map(f => Math.abs(f.value));
-        const targetValues = fields.map(f => Math.abs(f.value) * 1.1); // target = 110% of current as demo
-
-        // Three bands: good (0–60%), warning (60–85%), critical (85–100%)
-        const bandSeries = [
-            { name: 'Good', pct: 0.60, color: '#91cc75' },
-            { name: 'Warning', pct: 0.25, color: '#fac858' },
-            { name: 'Critical', pct: 0.15, color: '#ee6666' }
-        ].map(band => ({
-            name: band.name,
-            type: 'bar',
-            stack: 'bands',
-            barWidth: '40%',
-            itemStyle: { color: band.color, opacity: 0.35 },
-            data: fields.map(() => maxValue * band.pct),
-            z: 1,
-            tooltip: { show: false }
-        }));
-
-        const actualSeries = {
-            name: 'Actual',
-            type: 'bar',
-            barWidth: '20%',
-            barGap: '-100%',
-            itemStyle: { color: '#5470c6' },
-            data: actualValues,
-            z: 2,
-            label: {
-                show: true, position: 'right', color: textColor, fontSize: 10,
-                formatter: (p) => {
-                    const field = fields[p.dataIndex];
-                    return this._formatValueWithUnits(p.value, field.units);
-                }
-            }
-        };
-
-        const targetSeries = {
-            name: 'Target',
-            type: 'scatter',
-            symbolSize: [4, 30],
-            symbol: 'rect',
-            itemStyle: { color: '#333' },
-            data: targetValues,
-            z: 3,
-            tooltip: { show: false }
-        };
-
-        return {
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: { type: 'shadow' },
-                formatter: (params) => {
-                    const actual = params.find(p => p.seriesName === 'Actual');
-                    if (!actual) return '';
-                    const field = fields[actual.dataIndex];
-                    return `${actual.name}<br/>Actual: ${this._formatValueWithUnits(actual.value, field.units)}`;
-                }
-            },
-            grid: { left: '5%', right: '10%', top: '5%', bottom: '5%', containLabel: true },
-            xAxis: {
-                type: 'value',
-                max: maxValue,
-                axisLabel: { color: textColor, formatter: (v) => this._formatNumberBySize(v) },
-                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
-            },
-            yAxis: {
-                type: 'category',
-                data: categories,
-                axisLabel: { color: textColor, fontSize: 11 },
-                axisLine: { lineStyle: { color: gridColor } }
-            },
-            series: [...bandSeries, actualSeries, targetSeries],
-            animation: true,
-            animationDuration: 800
-        };
+        return this._showUnsupportedMessage(
+            'Bullet graph is not supported in this phase.\n' +
+            'It requires target and threshold values that cannot be\n' +
+            'derived from Zabbix item data without fabrication.'
+        );
     }
 
     /**
@@ -4426,6 +4500,14 @@ class WidgetEcharts extends CWidget {
 
         // Collect unique indicator names and group values by host
         const indicatorNames = [...new Set(fields.map(f => f.name))];
+
+        if (indicatorNames.length < 3) {
+            return this._showValidationError(
+                'Radar chart requires at least three comparable metrics.\n' +
+                'Add more items with different names.'
+            );
+        }
+
         const hosts = [...new Set(fields.map(f => f.host))];
         const colors = this._getDistributedColors(hosts.length);
 
@@ -4559,95 +4641,17 @@ class WidgetEcharts extends CWidget {
     /**
      * Candlestick / OHLC chart (§4.6)
      * Interprets groups of 4 consecutive items per name as open, close, low, high.
-     * Falls back to generating synthetic OHLC from a single value when fewer items are present.
+    /**
+     * Candlestick / OHLC chart — deferred to Phase 2.
+     * Requires genuine open/high/low/close data; fabricating OHLC values from a
+     * single latest reading is not permitted.
      */
     _createCandlestickChart(data) {
-        const fields = data.fields;
-        if (!fields || !fields.length) return null;
-
-        const isDark = document.body.classList.contains('dark-theme');
-        const textColor = isDark ? '#ffffff' : '#333333';
-        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
-        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
-
-        // Try to use historical data for a meaningful OHLC view
-        const historyMap = this._items_history || {};
-        const categories = [];
-        const ohlcData = [];
-
-        fields.forEach(field => {
-            const history = historyMap[field.id];
-            if (history && history.length >= 4) {
-                // Bucket history into periods of ~6 points each for OHLC bars
-                const bucketSize = Math.max(1, Math.floor(history.length / 20));
-                for (let i = 0; i < history.length; i += bucketSize) {
-                    const bucket = history.slice(i, i + bucketSize);
-                    const vals = bucket.map(p => parseFloat(p.value));
-                    const open = vals[0];
-                    const close = vals[vals.length - 1];
-                    const high = Math.max(...vals);
-                    const low = Math.min(...vals);
-                    const ts = new Date(bucket[0].clock * 1000);
-                    const label = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    if (!categories.includes(label)) categories.push(label);
-                    ohlcData.push([open, close, low, high]);
-                }
-            } else {
-                // Synthetic: use current value with ±5% variation
-                const v = Math.abs(field.value);
-                const open = v * 0.97;
-                const close = v;
-                const low = v * 0.94;
-                const high = v * 1.06;
-                categories.push(field.name);
-                ohlcData.push([open, close, low, high]);
-            }
-        });
-
-        if (!ohlcData.length) return null;
-
-        const units = fields[0]?.units || '';
-
-        return {
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: { type: 'cross' },
-                formatter: (params) => {
-                    const p = params[0];
-                    const [open, close, low, high] = p.value;
-                    return `${p.name}<br/>Open: ${this._formatValueWithUnits(open, units)}<br/>` +
-                        `Close: ${this._formatValueWithUnits(close, units)}<br/>` +
-                        `Low: ${this._formatValueWithUnits(low, units)}<br/>` +
-                        `High: ${this._formatValueWithUnits(high, units)}`;
-                }
-            },
-            grid: { left: '5%', right: '5%', bottom: '10%', top: '8%', containLabel: true },
-            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
-            xAxis: {
-                type: 'category',
-                data: categories,
-                axisLabel: { color: textColor, rotate: categories.length > 10 ? 30 : 0, fontSize: 10 },
-                axisLine: { lineStyle: { color: gridColor } }
-            },
-            yAxis: {
-                type: 'value',
-                axisLabel: { color: textColor, formatter: (v) => this._formatNumberBySize(v) },
-                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
-            },
-            series: [{
-                type: 'candlestick',
-                data: ohlcData,
-                itemStyle: {
-                    color: '#ee6666',
-                    color0: '#91cc75',
-                    borderColor: '#ee6666',
-                    borderColor0: '#91cc75'
-                }
-            }],
-            animation: true,
-            animationDuration: 800
-        };
+        return this._showUnsupportedMessage(
+            'Candlestick chart is not supported in this phase.\n' +
+            'It requires genuine OHLC (open/high/low/close) data\n' +
+            'that cannot be fabricated from Zabbix item values.'
+        );
     }
 
     /**
@@ -4717,387 +4721,56 @@ class WidgetEcharts extends CWidget {
 
     /**
      * Gantt chart (§4.7)
-     * Treats item lastclock as task end time and delay as duration to compute start.
-     * Each item becomes a horizontal bar positioned on a time axis.
+    /**
+     * Gantt chart — deferred to Phase 2.
+     * Requires structured task start/end times and durations.
+     * Inferring task duration from item polling interval (delay) is not permitted.
      */
     _createGanttChart(data) {
-        const fields = data.fields;
-        if (!fields || !fields.length) return null;
-
-        const isDark = document.body.classList.contains('dark-theme');
-        const textColor = isDark ? '#ffffff' : '#333333';
-        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
-        const colors = this._getDistributedColors(fields.length);
-
-        // Build tasks from item metadata
-        const now = Date.now();
-        const tasks = fields.map((f, i) => {
-            const meta = this._items_meta[f.id] || {};
-            const endTs = meta.lastclock ? meta.lastclock * 1000 : now;
-            const delaySeconds = parseInt(meta.delay) || 300;
-            const startTs = endTs - delaySeconds * 1000;
-            const pct = Math.min(100, Math.max(0, Math.abs(f.value)));
-            return { name: f.name, host: f.host, start: startTs, end: endTs, pct, color: colors[i] };
-        });
-
-        const minStart = Math.min(...tasks.map(t => t.start));
-        const maxEnd = Math.max(...tasks.map(t => t.end));
-        const totalSpan = maxEnd - minStart || 1;
-
-        const categories = tasks.map(t => `${t.host}: ${t.name}`);
-        const barData = tasks.map((t, i) => {
-            const xStart = ((t.start - minStart) / totalSpan) * 100;
-            const xWidth = ((t.end - t.start) / totalSpan) * 100;
-            return { value: [i, xStart, xStart + xWidth, t.pct], itemStyle: { color: t.color } };
-        });
-
-        const fmtTs = (ts) => new Date(ts).toLocaleString();
-
-        return {
-            tooltip: {
-                formatter: (p) => {
-                    if (!p.value) return '';
-                    const task = tasks[p.value[0]];
-                    if (!task) return '';
-                    return `${task.name}<br/>Host: ${task.host}<br/>` +
-                        `Start: ${fmtTs(task.start)}<br/>` +
-                        `End: ${fmtTs(task.end)}<br/>` +
-                        `Progress: ${task.pct.toFixed(0)}%`;
-                }
-            },
-            grid: { left: '5%', right: '5%', bottom: showLegend ? '12%' : '5%', top: '5%', containLabel: true },
-            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
-            xAxis: {
-                type: 'value',
-                min: 0,
-                max: 100,
-                axisLabel: {
-                    color: textColor,
-                    formatter: (v) => {
-                        const ts = minStart + (v / 100) * totalSpan;
-                        return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    }
-                },
-                splitLine: { show: true, lineStyle: { color: gridColor, type: 'dashed' } }
-            },
-            yAxis: {
-                type: 'category',
-                data: categories,
-                axisLabel: { color: textColor, fontSize: 10 },
-                axisLine: { lineStyle: { color: gridColor } }
-            },
-            series: [{
-                type: 'custom',
-                renderItem: (params, api) => {
-                    const categoryIndex = api.value(0);
-                    const start = api.coord([api.value(1), categoryIndex]);
-                    const end = api.coord([api.value(2), categoryIndex]);
-                    const height = api.size([0, 1])[1] * 0.5;
-                    return {
-                        type: 'rect',
-                        shape: {
-                            x: start[0], y: start[1] - height / 2,
-                            width: Math.max(2, end[0] - start[0]),
-                            height
-                        },
-                        style: api.style({ fill: tasks[categoryIndex]?.color || '#5470c6' }),
-                        emphasis: { style: { shadowBlur: 8 } }
-                    };
-                },
-                data: barData,
-                encode: { x: [1, 2], y: 0 },
-                label: {
-                    show: true, position: 'inside', color: '#fff', fontSize: 9,
-                    formatter: (p) => `${p.value[3].toFixed(0)}%`
-                }
-            }],
-            animation: true,
-            animationDuration: 800
-        };
+        return this._showUnsupportedMessage(
+            'Gantt chart is not supported in this phase.\n' +
+            'It requires a structured task time model (start, end, duration)\n' +
+            'that is not available from Zabbix item-value data.'
+        );
     }
 
     /**
-     * Tree diagram (§4.11)
-     * Groups items under their hosts to form a two-level tree.
-     * Deeper nesting can be achieved via dot-delimited item names.
+     * Tree diagram — deferred to Phase 2.
+     * Requires LLD-derived hierarchy data; inferring structure from item names
+     * is not a reliable substitute.
      */
     _createTreeDiagram(data) {
-        const fields = data.fields;
-        if (!fields || !fields.length) return null;
-
-        const isDark = document.body.classList.contains('dark-theme');
-        const textColor = isDark ? '#ffffff' : '#333333';
-        const lineColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)';
-        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
-
-        // Build host → item tree, supporting dot-delimited sub-paths in item name
-        const hostMap = {};
-        fields.forEach(f => {
-            if (!hostMap[f.host]) hostMap[f.host] = {};
-            // Support hierarchical item names like "cpu.user" → cpu > user
-            const parts = f.name.split('.');
-            let node = hostMap[f.host];
-            parts.forEach((part, pi) => {
-                if (!node[part]) node[part] = { _value: null, _units: f.units };
-                if (pi === parts.length - 1) node[part]._value = f.value;
-                node = node[part];
-            });
-        });
-
-        const buildChildren = (node) => {
-            return Object.entries(node)
-                .filter(([k]) => !k.startsWith('_'))
-                .map(([name, child]) => {
-                    const val = child._value;
-                    const entry = {
-                        name: val !== null
-                            ? `${name}: ${this._formatValueWithUnits(val, child._units)}`
-                            : name,
-                        value: val
-                    };
-                    const children = buildChildren(child);
-                    if (children.length) entry.children = children;
-                    return entry;
-                });
-        };
-
-        const treeData = [{
-            name: 'Hosts',
-            children: Object.entries(hostMap).map(([host, items]) => ({
-                name: host,
-                children: buildChildren(items)
-            }))
-        }];
-
-        return {
-            tooltip: {
-                trigger: 'item',
-                formatter: (p) => {
-                    if (p.value !== null && p.value !== undefined) {
-                        return `${p.name}`;
-                    }
-                    return p.name;
-                }
-            },
-            legend: { show: false },
-            series: [{
-                type: 'tree',
-                data: treeData,
-                top: '5%',
-                left: '8%',
-                bottom: '5%',
-                right: '15%',
-                symbolSize: 8,
-                orient: 'LR',
-                label: {
-                    position: 'left',
-                    verticalAlign: 'middle',
-                    align: 'right',
-                    fontSize: 10,
-                    color: textColor
-                },
-                leaves: {
-                    label: {
-                        position: 'right',
-                        verticalAlign: 'middle',
-                        align: 'left',
-                        color: textColor,
-                        fontSize: 10
-                    }
-                },
-                lineStyle: { color: lineColor, width: 1.5, curveness: 0.5 },
-                expandAndCollapse: true,
-                animationDuration: 550,
-                animationDurationUpdate: 750,
-                initialTreeDepth: 2
-            }]
-        };
+        return this._showUnsupportedMessage(
+            'Tree diagram is not supported in this phase.\n' +
+            'It requires LLD relationship data that is not available\n' +
+            'from Zabbix item-value data.'
+        );
     }
 
     /**
-     * Network / Graph diagram (§4.12)
-     * Nodes = hosts, edges = items shared between hosts.
-     * Uses force-directed layout; node size scales with item count.
+     * Network / Graph diagram — deferred to Phase 2.
+     * Requires topology data (LLDP neighbours, explicit edges) that is not
+     * present in Zabbix item-value data.
      */
     _createNetworkDiagram(data) {
-        const fields = data.fields;
-        if (!fields || !fields.length) return null;
-
-        const isDark = document.body.classList.contains('dark-theme');
-        const textColor = isDark ? '#ffffff' : '#333333';
-        const lineColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
-        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
-
-        // Build unique nodes per host
-        const hosts = [...new Set(fields.map(f => f.host))];
-        const colors = this._getDistributedColors(hosts.length);
-
-        const itemCountByHost = {};
-        fields.forEach(f => {
-            itemCountByHost[f.host] = (itemCountByHost[f.host] || 0) + 1;
-        });
-
-        const nodes = hosts.map((host, i) => ({
-            id: host,
-            name: host,
-            symbolSize: Math.max(20, Math.min(60, itemCountByHost[host] * 8)),
-            itemStyle: { color: colors[i] },
-            label: { show: true, color: textColor, fontSize: 10 }
-        }));
-
-        // Build edges: items with the same name shared across multiple hosts link those hosts
-        const itemToHosts = {};
-        fields.forEach(f => {
-            if (!itemToHosts[f.name]) itemToHosts[f.name] = [];
-            if (!itemToHosts[f.name].includes(f.host)) itemToHosts[f.name].push(f.host);
-        });
-
-        const edgeSet = new Set();
-        const edges = [];
-        Object.entries(itemToHosts).forEach(([itemName, hostList]) => {
-            for (let i = 0; i < hostList.length - 1; i++) {
-                for (let j = i + 1; j < hostList.length; j++) {
-                    const key = [hostList[i], hostList[j]].sort().join('||');
-                    if (!edgeSet.has(key)) {
-                        edgeSet.add(key);
-                        edges.push({
-                            source: hostList[i],
-                            target: hostList[j],
-                            lineStyle: { color: lineColor, width: 1.5 },
-                            label: { show: false, formatter: itemName }
-                        });
-                    }
-                }
-            }
-        });
-
-        // When no shared items produce edges, add a simple star topology from first host
-        if (!edges.length && hosts.length > 1) {
-            hosts.slice(1).forEach(host => {
-                edges.push({
-                    source: hosts[0],
-                    target: host,
-                    lineStyle: { color: lineColor, width: 1 }
-                });
-            });
-        }
-
-        return {
-            tooltip: {
-                trigger: 'item',
-                formatter: (p) => {
-                    if (p.dataType === 'node') {
-                        const count = itemCountByHost[p.name] || 0;
-                        return `<b>${p.name}</b><br/>Items: ${count}`;
-                    }
-                    return `${p.data.source} ↔ ${p.data.target}`;
-                }
-            },
-            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
-            series: [{
-                type: 'graph',
-                layout: 'force',
-                data: nodes,
-                links: edges,
-                roam: true,
-                focusNodeAdjacency: true,
-                force: {
-                    repulsion: 200,
-                    gravity: 0.1,
-                    edgeLength: [80, 200],
-                    layoutAnimation: true
-                },
-                lineStyle: { curveness: 0.1 },
-                emphasis: {
-                    focus: 'adjacency',
-                    lineStyle: { width: 3 }
-                }
-            }],
-            animation: true
-        };
+        return this._showUnsupportedMessage(
+            'Network diagram is not supported in this phase.\n' +
+            'It requires topology data (e.g. LLDP neighbours) that is not\n' +
+            'available from Zabbix item-value data.'
+        );
     }
 
     /**
-     * Chord diagram (§4.12)
-     * Shows relationships / flows between hosts proportional to item values.
+     * Chord diagram — deferred to Phase 2.
+     * Requires explicit dependency/flow relationships between hosts that cannot
+     * be inferred from shared item names without fabricating edges.
      */
     _createChordDiagram(data) {
-        const fields = data.fields;
-        if (!fields || !fields.length) return null;
-
-        const isDark = document.body.classList.contains('dark-theme');
-        const textColor = isDark ? '#ffffff' : '#333333';
-        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
-
-        const hosts = [...new Set(fields.map(f => f.host))];
-        const colors = this._getDistributedColors(hosts.length);
-
-        // Build a symmetric flow matrix: flow[i][j] = sum of values for items on host i
-        // directed towards host j (shared item names). Use current value as weight.
-        const n = hosts.length;
-        const matrix = Array.from({ length: n }, () => Array(n).fill(0));
-
-        const itemToHosts = {};
-        fields.forEach(f => {
-            if (!itemToHosts[f.name]) itemToHosts[f.name] = [];
-            itemToHosts[f.name].push({ host: f.host, value: Math.abs(f.value) });
-        });
-
-        Object.values(itemToHosts).forEach(entries => {
-            for (let i = 0; i < entries.length; i++) {
-                for (let j = 0; j < entries.length; j++) {
-                    if (i !== j) {
-                        const si = hosts.indexOf(entries[i].host);
-                        const sj = hosts.indexOf(entries[j].host);
-                        if (si >= 0 && sj >= 0) {
-                            matrix[si][sj] += (entries[i].value + entries[j].value) / 2;
-                        }
-                    }
-                }
-            }
-        });
-
-        // If no cross-host flows, create self-values from item totals
-        const anyFlow = matrix.some(row => row.some(v => v > 0));
-        if (!anyFlow) {
-            hosts.forEach((host, i) => {
-                const total = fields.filter(f => f.host === host).reduce((s, f) => s + Math.abs(f.value), 0);
-                matrix[i][i] = total;
-            });
-        }
-
-        return {
-            tooltip: {
-                trigger: 'item',
-                formatter: (p) => {
-                    if (p.dataType === 'edge') {
-                        return `${p.data.source} → ${p.data.target}: ${this._formatNumberBySize(p.data.value)}`;
-                    }
-                    return `${p.name}: ${this._formatNumberBySize(p.value)}`;
-                }
-            },
-            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor }, type: 'scroll' } : { show: false },
-            series: [{
-                type: 'chord',
-                radius: '65%',
-                center: ['50%', '50%'],
-                data: hosts.map((host, i) => ({ name: host, itemStyle: { color: colors[i] } })),
-                links: matrix.flatMap((row, i) =>
-                    row.map((val, j) => ({
-                        source: hosts[i],
-                        target: hosts[j],
-                        value: val
-                    })).filter(l => l.value > 0)
-                ),
-                label: { show: true, color: textColor, fontSize: 10 },
-                itemStyle: { borderWidth: 0 },
-                lineStyle: { opacity: 0.4, width: 2 },
-                emphasis: { lineStyle: { opacity: 0.8 } }
-            }],
-            animation: true,
-            animationDuration: 800
-        };
+        return this._showUnsupportedMessage(
+            'Chord diagram is not supported in this phase.\n' +
+            'It requires dependency relationship data that is not\n' +
+            'available from Zabbix item-value data.'
+        );
     }
 
     /**
@@ -5113,9 +4786,23 @@ class WidgetEcharts extends CWidget {
         const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
 
         const historyMap = this._items_history || {};
+
+        // Require real historical data — do not fall back to lastclock
+        const hasHistory = fields.some(f => {
+            const h = historyMap[f.id];
+            return h && h.length > 0;
+        });
+
+        if (!hasHistory) {
+            return this._showValidationError(
+                'Calendar heat map requires historical data.\n' +
+                'Ensure items have historical records and history retrieval is enabled.'
+            );
+        }
+
         const calendarData = {};
 
-        // Aggregate values per calendar day from history or from lastclock
+        // Aggregate values per calendar day from history only
         fields.forEach(f => {
             const history = historyMap[f.id];
             if (history && history.length) {
@@ -5124,14 +4811,6 @@ class WidgetEcharts extends CWidget {
                     const key = date.toISOString().split('T')[0];
                     calendarData[key] = (calendarData[key] || 0) + Math.abs(parseFloat(point.value));
                 });
-            } else {
-                const meta = this._items_meta[f.id] || {};
-                const clock = meta.lastclock;
-                if (clock) {
-                    const date = new Date(clock * 1000);
-                    const key = date.toISOString().split('T')[0];
-                    calendarData[key] = (calendarData[key] || 0) + Math.abs(f.value);
-                }
             }
         });
 

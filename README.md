@@ -9,10 +9,24 @@ This module adds a customizable widget to Zabbix that allows creating interactiv
 
 ![image](https://github.com/user-attachments/assets/0b321c1d-8993-477a-93df-a9ae55dbdb62)
 
+> **This README describes Phase 1 of the echarts-zabbix visualisation roadmap.**
+> Phase 1 introduces chart renderers that operate strictly on existing Zabbix
+> item-value data without inference or fabrication.  Advanced visualisations
+> requiring structured topology, LLD relationships, or geospatial data are
+> deferred to Phase 2+.
 
-## 🚀 Features
+## 🚀 Phase 1 Features
 
-- Support for multiple chart types:
+- **Supported chart types** (render correctly from Zabbix item-value data):
+  - Vertical Column Chart
+  - Stacked Bar Chart
+  - Doughnut Chart
+  - Radar Chart
+  - Heat Map
+  - Bubble Chart
+  - Calendar Heat Map *(requires historical data)*
+
+- **Pre-existing chart types** (unchanged from the original widget):
   - Gauge
   - Liquid Chart
   - Pie Chart
@@ -23,8 +37,10 @@ This module adds a customizable widget to Zabbix that allows creating interactiv
   - Funnel Chart
   - Treemap/Sunburst Chart
   - LLD Table
-  - **Temporal Line Chart** (NEW)
-  - **Temporal Area Chart** (NEW)
+  - Temporal Line Chart
+  - Temporal Area Chart
+  - Area Rainfall Chart
+  - Scatter Effect Chart
 
 - **6 built-in color themes** for different environments and use cases
 - Simplified configuration through Zabbix interface
@@ -34,6 +50,90 @@ This module adds a customizable widget to Zabbix that allows creating interactiv
 - Interactive and responsive tooltips
 - Interactive zoom and navigation
 - Automatic value formatting based on item units
+- **Input validation** — unsupported configurations display a clear message instead of rendering incorrectly
+
+## 📊 Phase 1 Chart Types
+
+### Vertical Column Chart
+- **Input**: one or more Zabbix items (latest values)
+- Each item is rendered as a vertical bar
+- Item name on X-axis, value on Y-axis
+- Colour per bar, auto-scaled labels
+
+### Stacked Bar Chart
+- **Input**: items from **multiple hosts** or with **multiple distinct names**
+- Groups items by host; each host is a stacked series
+- X-axis = item names, Y-axis = value
+- **Validation**: fails with a message if only one host and one item name are present
+
+### Doughnut Chart
+- **Input**: one or more Zabbix items (latest values)
+- Proportion of each item value relative to the total
+- Percentage labels on each segment
+
+### Radar Chart
+- **Input**: items with **at least three distinct names** (metrics)
+- Each host forms one radar polygon; each item name forms one axis
+- **Validation**: fails with a message if fewer than three distinct metric names are present
+
+### Heat Map
+- **Input**: items from one or more hosts (latest values)
+- Rows = item names, columns = hosts, cell colour = value intensity
+- Visual map legend shown on the right
+
+### Bubble Chart
+- **Input**: one or more Zabbix items (latest values)
+- X-axis = item index, Y-axis = value, bubble size proportional to value magnitude
+- Grouped by host for multi-series display
+
+### Calendar Heat Map *(optional)*
+- **Input**: items with **historical data** (items_history)
+- Plots aggregated daily values on a full-year calendar grid
+- **Validation**: fails with a message if no historical data is available
+- *Do not use this chart type if history retrieval is disabled*
+
+## 📋 Input Requirements per Chart
+
+| Chart Type | Latest Values | History | Min Items | Min Hosts |
+|---|---|---|---|---|
+| Vertical Column | ✅ | — | 1 | 1 |
+| Stacked Bar | ✅ | — | 2+ (multi-host or multi-name) | 1 |
+| Doughnut | ✅ | — | 1 | 1 |
+| Radar | ✅ | — | 3+ distinct names | 1 |
+| Heat Map | ✅ | — | 1 | 1 |
+| Bubble | ✅ | — | 1 | 1 |
+| Calendar Heat Map | — | ✅ | 1 | 1 |
+
+## 🔒 Data Handling Constraints
+
+- **Latest-value charts** use current item values only (`items_data`)
+- **Historical charts** use `items_history` only
+- No data is fabricated or inferred:
+  - No synthetic targets or thresholds
+  - No artificial OHLC values
+  - No inferred topology edges
+  - No fabricated durations or coordinates
+- If required data is missing, the widget shows an explicit error message
+
+## ⚠️ Known Limitations
+
+- Stacked Bar requires at least two hosts or two distinct item names to produce a meaningful visualisation
+- Radar chart axes are scaled independently per indicator; values of different units on the same radar are visually comparable but not mathematically equivalent
+- Calendar Heat Map aggregates all selected items into a single daily total; per-item breakdown is not available in Phase 1
+- All Phase 1 charts use the current (latest) item value only — temporal trends require the Temporal Line or Temporal Area chart types
+
+## 🚫 Deferred to Phase 2+
+
+The following chart types are **not available** in Phase 1. Selecting them will display an informational message explaining why they are not rendered.
+
+| Chart Type | Reason for deferral |
+|---|---|
+| Bullet Graph | Requires explicit target/threshold values not present in item data |
+| Candlestick Chart | Requires genuine OHLC data; synthetic generation is not permitted |
+| Gantt Chart | Requires a structured task time model (start, end, duration) |
+| Tree Diagram | Requires LLD hierarchy/relationship data |
+| Network Diagram | Requires topology data (e.g. LLDP neighbours) |
+| Chord Diagram | Requires explicit dependency/flow relationship data |
 
 ## 🎨 Color Themes
 
@@ -47,98 +147,9 @@ The module includes **6 carefully designed color themes** that ensure optimal vi
 5. **Dark** - Deep, saturated colors perfect for dark themes
 6. **Blue Monochrome** - Various shades of blue for a professional look
 
-### Intelligent Color Distribution
-- **Smart Allocation**: Colors are distributed evenly across data series
-- **Automatic Cycling**: When you have more series than colors, the system intelligently cycles through the palette
-- **Consistent Mapping**: Each data series maintains its color throughout the visualization
-- **Accessibility Compliant**: All themes follow accessibility guidelines for color contrast
-
-## 📊 Chart Types
-
-### Gauge
-- Displays value in a circular gauge format
-- Dynamic colors based on value with theme-aware palettes
-- Support for multiple color ranges
-- Smooth value update animation
-
-### Liquid Chart
-- Liquid fill visualization
-- Fluid animation
-- Dynamic colors based on value
-- Perfect for percentage representation
-
-### Pie Chart
-- Pie/donut visualization
-- Support for multiple values with intelligent color distribution
-- Informative labels with theme-consistent styling
-- Hover interaction with enhanced color emphasis
-
-### Horizontal Bar Chart
-- Horizontal bar visualization
-- Automatic value-based sorting
-- Pagination support for many items
-- Informative labels with units
-
-### Multi-level Gauge
-- Multiple gauges in a single chart
-- Distinct colors for each level
-- Independent level animation
-- Ideal for comparisons
-
-### Treemap Chart
-- Hierarchical data visualization
-- Interactive zoom
-- Dynamic value-based colors
-- Breadcrumb navigation
-
-### Nightingale Rose Chart
-- Segmented circular visualization
-- Perfect for value comparison
-- Informative tooltips
-- Interactive animation
-
-### Funnel Chart
-- Funnel-shaped visualization
-- Ideal for sequential processes
-- Informative labels
-- Smooth animation
-
-### Treemap/Sunburst Chart
-- Automatic alternation between views
-- Animated transition
-- Rich interaction
-- Perfect for hierarchical data
-
-### LLD Table
-- Table format visualization
-- Pagination support
-- Column sorting
-- Automatic value formatting
-
-### Temporal Line Chart ⭐ NEW
-- **Modern, clean visualization** with optimized layout and reduced visual clutter
-- Historical data visualization over time with **interactive zoom and pan**
-- Multiple items displayed as different colored lines with smooth animations
-- **Native Zabbix time period integration** - fully compatible with dashboard time filters
-- **Smart tooltips** with enhanced formatting and cross-axis indicators
-- **Auto-scaling Y-axis labels** (K, M, G formatting for large numbers)
-- **Intelligent time formatting** - shows time for today, date+time for other days
-- Configurable smooth lines, legend, and grid display
-- Real-time data updates with staggered animations
-- Time period indicator in widget header
-- **Responsive design** that adapts to widget size
-
-### Temporal Area Chart ⭐ NEW
-- **Beautiful gradient fill areas** with transparency effects
-- All temporal line chart features included
-- **Overlapping area visualization** instead of stacking for better readability
-- Perfect for visualizing data trends and accumulations
-- **Native Zabbix time period integration**
-- Enhanced visual appeal with modern gradients
-
 ## 🔧 Configuration
 
-1. **Chart Type**: Select desired chart type
+1. **Chart Type**: Select desired chart type (Phase 1 types only are shown)
 2. **Color Theme**: Choose from 6 professional color themes
 3. **Items**: Choose items to monitor
 4. For temporal charts, configure:
@@ -151,7 +162,7 @@ The module includes **6 carefully designed color themes** that ensure optimal vi
    - Formats values appropriately
    - Adjusts colors and scales
    - Configures tooltips and interactions
-   - Retrieves historical data for temporal charts
+   - Validates input before rendering
 
 ## 📈 Value Formatting
 
