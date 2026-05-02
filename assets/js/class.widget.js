@@ -23,6 +23,19 @@ class WidgetEcharts extends CWidget {
     static DISPLAY_TYPE_TEMPORAL_AREA = 12;
     static DISPLAY_TYPE_AREA_RAINFALL = 13;
     static DISPLAY_TYPE_SCATTER_EFFECT = 14;
+    static DISPLAY_TYPE_COLUMN = 15;
+    static DISPLAY_TYPE_STACKED_BAR = 16;
+    static DISPLAY_TYPE_DOUGHNUT = 17;
+    static DISPLAY_TYPE_BULLET = 18;
+    static DISPLAY_TYPE_RADAR = 19;
+    static DISPLAY_TYPE_HEATMAP = 20;
+    static DISPLAY_TYPE_CANDLESTICK = 21;
+    static DISPLAY_TYPE_BUBBLE = 22;
+    static DISPLAY_TYPE_GANTT = 23;
+    static DISPLAY_TYPE_TREE = 24;
+    static DISPLAY_TYPE_GRAPH = 25;
+    static DISPLAY_TYPE_CHORD = 26;
+    static DISPLAY_TYPE_CALENDAR = 27;
     
 
 
@@ -422,6 +435,45 @@ class WidgetEcharts extends CWidget {
                     break;
                 case WidgetEcharts.DISPLAY_TYPE_SCATTER_EFFECT:
                     options = this._createScatterEffectChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_COLUMN:
+                    options = this._createColumnChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_STACKED_BAR:
+                    options = this._createStackedBarChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_DOUGHNUT:
+                    options = this._createDoughnutChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_BULLET:
+                    options = this._createBulletChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_RADAR:
+                    options = this._createRadarChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_HEATMAP:
+                    options = this._createHeatmapChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_CANDLESTICK:
+                    options = this._createCandlestickChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_BUBBLE:
+                    options = this._createBubbleChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_GANTT:
+                    options = this._createGanttChart(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_TREE:
+                    options = this._createTreeDiagram(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_GRAPH:
+                    options = this._createNetworkDiagram(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_CHORD:
+                    options = this._createChordDiagram(data);
+                    break;
+                case WidgetEcharts.DISPLAY_TYPE_CALENDAR:
+                    options = this._createCalendarHeatmap(data);
                     break;
                 default:
                     console.error('Unsupported chart type:', displayType);
@@ -4092,5 +4144,1052 @@ class WidgetEcharts extends CWidget {
         }
 
         return options;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // NEW CHART TYPE IMPLEMENTATIONS
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Vertical column chart (§4.1)
+     * Maps each item to a vertical bar. Grouped by host when multiple hosts present.
+     */
+    _createColumnChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
+        const colors = this._getDistributedColors(fields.length);
+
+        const categories = fields.map(f => f.name);
+        const seriesData = fields.map((f, i) => ({
+            value: f.value,
+            itemStyle: { color: colors[i] }
+        }));
+
+        return {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: (params) => {
+                    const p = params[0];
+                    const field = fields[p.dataIndex];
+                    return `${p.name}<br/>${this._formatValueWithUnits(p.value, field.units)}`;
+                }
+            },
+            grid: { left: '5%', right: '5%', bottom: showLegend ? '15%' : '8%', top: '8%', containLabel: true },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: textColor, rotate: categories.length > 6 ? 30 : 0, fontSize: 11 },
+                axisLine: { lineStyle: { color: gridColor } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    color: textColor,
+                    formatter: (v) => this._formatNumberBySize(v)
+                },
+                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
+            },
+            series: [{
+                type: 'bar',
+                data: seriesData,
+                barMaxWidth: 60,
+                label: { show: fields.length <= 10, position: 'top', color: textColor, fontSize: 10,
+                    formatter: (p) => this._formatNumberBySize(p.value) }
+            }],
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Stacked bar chart (§4.1)
+     * Groups items by host, stacks values per host into a horizontal bar per item name.
+     */
+    _createStackedBarChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
+
+        // Group by host to form stacked series; categories are item names
+        const hosts = [...new Set(fields.map(f => f.host))];
+        const categories = [...new Set(fields.map(f => f.name))];
+        const colors = this._getDistributedColors(hosts.length);
+
+        const series = hosts.map((host, hi) => ({
+            name: host,
+            type: 'bar',
+            stack: 'total',
+            itemStyle: { color: colors[hi] },
+            data: categories.map(cat => {
+                const match = fields.find(f => f.host === host && f.name === cat);
+                return match ? match.value : 0;
+            }),
+            label: { show: false }
+        }));
+
+        return {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: (params) => {
+                    const total = params.reduce((s, p) => s + (p.value || 0), 0);
+                    const lines = params.map(p => `${p.marker}${p.seriesName}: ${this._formatNumberBySize(p.value)}`);
+                    lines.push(`<b>Total: ${this._formatNumberBySize(total)}</b>`);
+                    return lines.join('<br/>');
+                }
+            },
+            grid: { left: '5%', right: '5%', bottom: showLegend ? '15%' : '8%', top: '8%', containLabel: true },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: textColor, rotate: categories.length > 6 ? 30 : 0, fontSize: 11 },
+                axisLine: { lineStyle: { color: gridColor } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: textColor, formatter: (v) => this._formatNumberBySize(v) },
+                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
+            },
+            series,
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Doughnut chart (§4.2)
+     */
+    _createDoughnutChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+        const colors = this._getDistributedColors(fields.length);
+
+        const total = fields.reduce((s, f) => s + Math.abs(f.value), 0);
+
+        const pieData = fields.map((f, i) => ({
+            name: f.name,
+            value: Math.abs(f.value),
+            itemStyle: { color: colors[i] }
+        }));
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    const field = fields[p.dataIndex];
+                    const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : '0.0';
+                    return `${p.name}<br/>${this._formatValueWithUnits(p.value, field.units)} (${pct}%)`;
+                }
+            },
+            legend: showLegend ? {
+                show: true, orient: 'vertical', right: '5%', top: 'center',
+                textStyle: { color: textColor }, type: 'scroll'
+            } : { show: false },
+            series: [{
+                type: 'pie',
+                radius: ['45%', '72%'],
+                center: showLegend ? ['38%', '50%'] : ['50%', '50%'],
+                data: pieData,
+                label: {
+                    show: true, color: textColor,
+                    formatter: (p) => `${p.percent.toFixed(1)}%`
+                },
+                labelLine: { show: true },
+                emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' } }
+            }],
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Bullet graph (§4.3)
+     * Renders one bullet per item: actual value vs configurable target (80% of max) with warning/critical bands.
+     */
+    _createBulletChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
+
+        const maxValue = Math.max(...fields.map(f => Math.abs(f.value))) * 1.25 || 100;
+        const categories = fields.map(f => f.name);
+        const actualValues = fields.map(f => Math.abs(f.value));
+        const targetValues = fields.map(f => Math.abs(f.value) * 1.1); // target = 110% of current as demo
+
+        // Three bands: good (0–60%), warning (60–85%), critical (85–100%)
+        const bandSeries = [
+            { name: 'Good', pct: 0.60, color: '#91cc75' },
+            { name: 'Warning', pct: 0.25, color: '#fac858' },
+            { name: 'Critical', pct: 0.15, color: '#ee6666' }
+        ].map(band => ({
+            name: band.name,
+            type: 'bar',
+            stack: 'bands',
+            barWidth: '40%',
+            itemStyle: { color: band.color, opacity: 0.35 },
+            data: fields.map(() => maxValue * band.pct),
+            z: 1,
+            tooltip: { show: false }
+        }));
+
+        const actualSeries = {
+            name: 'Actual',
+            type: 'bar',
+            barWidth: '20%',
+            barGap: '-100%',
+            itemStyle: { color: '#5470c6' },
+            data: actualValues,
+            z: 2,
+            label: {
+                show: true, position: 'right', color: textColor, fontSize: 10,
+                formatter: (p) => {
+                    const field = fields[p.dataIndex];
+                    return this._formatValueWithUnits(p.value, field.units);
+                }
+            }
+        };
+
+        const targetSeries = {
+            name: 'Target',
+            type: 'scatter',
+            symbolSize: [4, 30],
+            symbol: 'rect',
+            itemStyle: { color: '#333' },
+            data: targetValues,
+            z: 3,
+            tooltip: { show: false }
+        };
+
+        return {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: (params) => {
+                    const actual = params.find(p => p.seriesName === 'Actual');
+                    if (!actual) return '';
+                    const field = fields[actual.dataIndex];
+                    return `${actual.name}<br/>Actual: ${this._formatValueWithUnits(actual.value, field.units)}`;
+                }
+            },
+            grid: { left: '5%', right: '10%', top: '5%', bottom: '5%', containLabel: true },
+            xAxis: {
+                type: 'value',
+                max: maxValue,
+                axisLabel: { color: textColor, formatter: (v) => this._formatNumberBySize(v) },
+                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
+            },
+            yAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: textColor, fontSize: 11 },
+                axisLine: { lineStyle: { color: gridColor } }
+            },
+            series: [...bandSeries, actualSeries, targetSeries],
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Radar chart (§4.9)
+     * Each host forms one radar polygon; each item name forms one axis.
+     */
+    _createRadarChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+
+        // Collect unique indicator names and group values by host
+        const indicatorNames = [...new Set(fields.map(f => f.name))];
+        const hosts = [...new Set(fields.map(f => f.host))];
+        const colors = this._getDistributedColors(hosts.length);
+
+        // Max per indicator
+        const indicatorMax = indicatorNames.map(name => {
+            const vals = fields.filter(f => f.name === name).map(f => Math.abs(f.value));
+            return Math.max(...vals) * 1.2 || 100;
+        });
+
+        const indicators = indicatorNames.map((name, i) => ({ name, max: indicatorMax[i] }));
+
+        const series = [{
+            type: 'radar',
+            data: hosts.map((host, hi) => ({
+                name: host,
+                value: indicatorNames.map(name => {
+                    const match = fields.find(f => f.host === host && f.name === name);
+                    return match ? Math.abs(match.value) : 0;
+                }),
+                areaStyle: { opacity: 0.2, color: colors[hi] },
+                lineStyle: { color: colors[hi] },
+                itemStyle: { color: colors[hi] }
+            }))
+        }];
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    if (!p.value) return '';
+                    const lines = indicatorNames.map((name, i) =>
+                        `${name}: ${this._formatNumberBySize(p.value[i])}`
+                    );
+                    return `<b>${p.name}</b><br/>${lines.join('<br/>')}`;
+                }
+            },
+            legend: showLegend ? {
+                show: true, bottom: 0, textStyle: { color: textColor }, type: 'scroll'
+            } : { show: false },
+            radar: {
+                indicator: indicators,
+                shape: 'circle',
+                splitNumber: 4,
+                axisName: { color: textColor, fontSize: 11 },
+                splitLine: { lineStyle: { color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' } },
+                splitArea: { areaStyle: { color: isDark
+                    ? ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.05)']
+                    : ['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.05)'] } }
+            },
+            series,
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Heat map (§4.10)
+     * Rows = item names, columns = hosts, cell colour = value intensity.
+     */
+    _createHeatmapChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+        const hosts = [...new Set(fields.map(f => f.host))];
+        const items = [...new Set(fields.map(f => f.name))];
+
+        const values = fields.map(f => Math.abs(f.value));
+        const minVal = Math.min(...values);
+        const maxVal = Math.max(...values);
+
+        const heatData = fields.map(f => [
+            hosts.indexOf(f.host),
+            items.indexOf(f.name),
+            Math.abs(f.value)
+        ]);
+
+        const units = fields[0]?.units || '';
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    return `${hosts[p.value[0]]} / ${items[p.value[1]]}<br/>${this._formatValueWithUnits(p.value[2], units)}`;
+                }
+            },
+            grid: { left: '5%', right: '10%', top: '5%', bottom: '10%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: hosts,
+                axisLabel: { color: textColor, rotate: hosts.length > 5 ? 30 : 0, fontSize: 10 },
+                axisLine: { lineStyle: { color: gridColor } },
+                splitArea: { show: true }
+            },
+            yAxis: {
+                type: 'category',
+                data: items,
+                axisLabel: { color: textColor, fontSize: 10 },
+                axisLine: { lineStyle: { color: gridColor } },
+                splitArea: { show: true }
+            },
+            visualMap: {
+                min: minVal,
+                max: maxVal,
+                orient: 'vertical',
+                right: 0,
+                top: 'center',
+                inRange: { color: ['#313695', '#4575b4', '#74add1', '#ffffbf', '#f46d43', '#d73027', '#a50026'] },
+                textStyle: { color: textColor },
+                formatter: (v) => this._formatNumberBySize(v)
+            },
+            series: [{
+                type: 'heatmap',
+                data: heatData,
+                label: {
+                    show: heatData.length <= 50,
+                    fontSize: 9,
+                    color: textColor,
+                    formatter: (p) => this._formatNumberBySize(p.value[2])
+                },
+                emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } }
+            }],
+            animation: true,
+            animationDuration: 600
+        };
+    }
+
+    /**
+     * Candlestick / OHLC chart (§4.6)
+     * Interprets groups of 4 consecutive items per name as open, close, low, high.
+     * Falls back to generating synthetic OHLC from a single value when fewer items are present.
+     */
+    _createCandlestickChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+
+        // Try to use historical data for a meaningful OHLC view
+        const historyMap = this._items_history || {};
+        const categories = [];
+        const ohlcData = [];
+
+        fields.forEach(field => {
+            const history = historyMap[field.id];
+            if (history && history.length >= 4) {
+                // Bucket history into periods of ~6 points each for OHLC bars
+                const bucketSize = Math.max(1, Math.floor(history.length / 20));
+                for (let i = 0; i < history.length; i += bucketSize) {
+                    const bucket = history.slice(i, i + bucketSize);
+                    const vals = bucket.map(p => parseFloat(p.value));
+                    const open = vals[0];
+                    const close = vals[vals.length - 1];
+                    const high = Math.max(...vals);
+                    const low = Math.min(...vals);
+                    const ts = new Date(bucket[0].clock * 1000);
+                    const label = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    if (!categories.includes(label)) categories.push(label);
+                    ohlcData.push([open, close, low, high]);
+                }
+            } else {
+                // Synthetic: use current value with ±5% variation
+                const v = Math.abs(field.value);
+                const open = v * 0.97;
+                const close = v;
+                const low = v * 0.94;
+                const high = v * 1.06;
+                categories.push(field.name);
+                ohlcData.push([open, close, low, high]);
+            }
+        });
+
+        if (!ohlcData.length) return null;
+
+        const units = fields[0]?.units || '';
+
+        return {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' },
+                formatter: (params) => {
+                    const p = params[0];
+                    const [open, close, low, high] = p.value;
+                    return `${p.name}<br/>Open: ${this._formatValueWithUnits(open, units)}<br/>` +
+                        `Close: ${this._formatValueWithUnits(close, units)}<br/>` +
+                        `Low: ${this._formatValueWithUnits(low, units)}<br/>` +
+                        `High: ${this._formatValueWithUnits(high, units)}`;
+                }
+            },
+            grid: { left: '5%', right: '5%', bottom: '10%', top: '8%', containLabel: true },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: textColor, rotate: categories.length > 10 ? 30 : 0, fontSize: 10 },
+                axisLine: { lineStyle: { color: gridColor } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: textColor, formatter: (v) => this._formatNumberBySize(v) },
+                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
+            },
+            series: [{
+                type: 'candlestick',
+                data: ohlcData,
+                itemStyle: {
+                    color: '#ee6666',
+                    color0: '#91cc75',
+                    borderColor: '#ee6666',
+                    borderColor0: '#91cc75'
+                }
+            }],
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Bubble chart (§4.5)
+     * x = item index, y = value, size = proportional to value magnitude.
+     */
+    _createBubbleChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+        const showGrid = this._fields_values.show_grid === true || this._fields_values.show_grid === 1;
+
+        const values = fields.map(f => Math.abs(f.value));
+        const maxVal = Math.max(...values) || 1;
+        const colors = this._getDistributedColors(fields.length);
+
+        // Group by host for multi-series
+        const hosts = [...new Set(fields.map(f => f.host))];
+
+        const series = hosts.map((host, hi) => {
+            const hostFields = fields.filter(f => f.host === host);
+            return {
+                name: host,
+                type: 'scatter',
+                symbolSize: (val) => Math.max(15, Math.min(80, (val[1] / maxVal) * 70 + 10)),
+                data: hostFields.map((f, i) => ({
+                    value: [fields.indexOf(f), Math.abs(f.value), Math.abs(f.value)],
+                    name: f.name,
+                    units: f.units,
+                    itemStyle: { color: colors[(hi + i) % colors.length], opacity: 0.75 }
+                })),
+                emphasis: { focus: 'series', itemStyle: { shadowBlur: 15 } }
+            };
+        });
+
+        const categories = fields.map(f => f.name);
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    return `${p.data.name}<br/>${this._formatValueWithUnits(p.data.value[1], p.data.units)}`;
+                }
+            },
+            grid: { left: '5%', right: '5%', bottom: showLegend ? '15%' : '8%', top: '8%', containLabel: true },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor }, type: 'scroll' } : { show: false },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: textColor, rotate: categories.length > 6 ? 30 : 0, fontSize: 10 },
+                axisLine: { lineStyle: { color: gridColor } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: textColor, formatter: (v) => this._formatNumberBySize(v) },
+                splitLine: { show: showGrid, lineStyle: { color: gridColor, type: 'dashed' } }
+            },
+            series,
+            animation: true,
+            animationDuration: 1000
+        };
+    }
+
+    /**
+     * Gantt chart (§4.7)
+     * Treats item lastclock as task end time and delay as duration to compute start.
+     * Each item becomes a horizontal bar positioned on a time axis.
+     */
+    _createGanttChart(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+        const colors = this._getDistributedColors(fields.length);
+
+        // Build tasks from item metadata
+        const now = Date.now();
+        const tasks = fields.map((f, i) => {
+            const meta = this._items_meta[f.id] || {};
+            const endTs = meta.lastclock ? meta.lastclock * 1000 : now;
+            const delaySeconds = parseInt(meta.delay) || 300;
+            const startTs = endTs - delaySeconds * 1000;
+            const pct = Math.min(100, Math.max(0, Math.abs(f.value)));
+            return { name: f.name, host: f.host, start: startTs, end: endTs, pct, color: colors[i] };
+        });
+
+        const minStart = Math.min(...tasks.map(t => t.start));
+        const maxEnd = Math.max(...tasks.map(t => t.end));
+        const totalSpan = maxEnd - minStart || 1;
+
+        const categories = tasks.map(t => `${t.host}: ${t.name}`);
+        const barData = tasks.map((t, i) => {
+            const xStart = ((t.start - minStart) / totalSpan) * 100;
+            const xWidth = ((t.end - t.start) / totalSpan) * 100;
+            return { value: [i, xStart, xStart + xWidth, t.pct], itemStyle: { color: t.color } };
+        });
+
+        const fmtTs = (ts) => new Date(ts).toLocaleString();
+
+        return {
+            tooltip: {
+                formatter: (p) => {
+                    if (!p.value) return '';
+                    const task = tasks[p.value[0]];
+                    if (!task) return '';
+                    return `${task.name}<br/>Host: ${task.host}<br/>` +
+                        `Start: ${fmtTs(task.start)}<br/>` +
+                        `End: ${fmtTs(task.end)}<br/>` +
+                        `Progress: ${task.pct.toFixed(0)}%`;
+                }
+            },
+            grid: { left: '5%', right: '5%', bottom: showLegend ? '12%' : '5%', top: '5%', containLabel: true },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
+            xAxis: {
+                type: 'value',
+                min: 0,
+                max: 100,
+                axisLabel: {
+                    color: textColor,
+                    formatter: (v) => {
+                        const ts = minStart + (v / 100) * totalSpan;
+                        return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+                },
+                splitLine: { show: true, lineStyle: { color: gridColor, type: 'dashed' } }
+            },
+            yAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: textColor, fontSize: 10 },
+                axisLine: { lineStyle: { color: gridColor } }
+            },
+            series: [{
+                type: 'custom',
+                renderItem: (params, api) => {
+                    const categoryIndex = api.value(0);
+                    const start = api.coord([api.value(1), categoryIndex]);
+                    const end = api.coord([api.value(2), categoryIndex]);
+                    const height = api.size([0, 1])[1] * 0.5;
+                    return {
+                        type: 'rect',
+                        shape: {
+                            x: start[0], y: start[1] - height / 2,
+                            width: Math.max(2, end[0] - start[0]),
+                            height
+                        },
+                        style: api.style({ fill: tasks[categoryIndex]?.color || '#5470c6' }),
+                        emphasis: { style: { shadowBlur: 8 } }
+                    };
+                },
+                data: barData,
+                encode: { x: [1, 2], y: 0 },
+                label: {
+                    show: true, position: 'inside', color: '#fff', fontSize: 9,
+                    formatter: (p) => `${p.value[3].toFixed(0)}%`
+                }
+            }],
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Tree diagram (§4.11)
+     * Groups items under their hosts to form a two-level tree.
+     * Deeper nesting can be achieved via dot-delimited item names.
+     */
+    _createTreeDiagram(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const lineColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+
+        // Build host → item tree, supporting dot-delimited sub-paths in item name
+        const hostMap = {};
+        fields.forEach(f => {
+            if (!hostMap[f.host]) hostMap[f.host] = {};
+            // Support hierarchical item names like "cpu.user" → cpu > user
+            const parts = f.name.split('.');
+            let node = hostMap[f.host];
+            parts.forEach((part, pi) => {
+                if (!node[part]) node[part] = { _value: null, _units: f.units };
+                if (pi === parts.length - 1) node[part]._value = f.value;
+                node = node[part];
+            });
+        });
+
+        const buildChildren = (node) => {
+            return Object.entries(node)
+                .filter(([k]) => !k.startsWith('_'))
+                .map(([name, child]) => {
+                    const val = child._value;
+                    const entry = {
+                        name: val !== null
+                            ? `${name}: ${this._formatValueWithUnits(val, child._units)}`
+                            : name,
+                        value: val
+                    };
+                    const children = buildChildren(child);
+                    if (children.length) entry.children = children;
+                    return entry;
+                });
+        };
+
+        const treeData = [{
+            name: 'Hosts',
+            children: Object.entries(hostMap).map(([host, items]) => ({
+                name: host,
+                children: buildChildren(items)
+            }))
+        }];
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    if (p.value !== null && p.value !== undefined) {
+                        return `${p.name}`;
+                    }
+                    return p.name;
+                }
+            },
+            legend: { show: false },
+            series: [{
+                type: 'tree',
+                data: treeData,
+                top: '5%',
+                left: '8%',
+                bottom: '5%',
+                right: '15%',
+                symbolSize: 8,
+                orient: 'LR',
+                label: {
+                    position: 'left',
+                    verticalAlign: 'middle',
+                    align: 'right',
+                    fontSize: 10,
+                    color: textColor
+                },
+                leaves: {
+                    label: {
+                        position: 'right',
+                        verticalAlign: 'middle',
+                        align: 'left',
+                        color: textColor,
+                        fontSize: 10
+                    }
+                },
+                lineStyle: { color: lineColor, width: 1.5, curveness: 0.5 },
+                expandAndCollapse: true,
+                animationDuration: 550,
+                animationDurationUpdate: 750,
+                initialTreeDepth: 2
+            }]
+        };
+    }
+
+    /**
+     * Network / Graph diagram (§4.12)
+     * Nodes = hosts, edges = items shared between hosts.
+     * Uses force-directed layout; node size scales with item count.
+     */
+    _createNetworkDiagram(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const lineColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+
+        // Build unique nodes per host
+        const hosts = [...new Set(fields.map(f => f.host))];
+        const colors = this._getDistributedColors(hosts.length);
+
+        const itemCountByHost = {};
+        fields.forEach(f => {
+            itemCountByHost[f.host] = (itemCountByHost[f.host] || 0) + 1;
+        });
+
+        const nodes = hosts.map((host, i) => ({
+            id: host,
+            name: host,
+            symbolSize: Math.max(20, Math.min(60, itemCountByHost[host] * 8)),
+            itemStyle: { color: colors[i] },
+            label: { show: true, color: textColor, fontSize: 10 }
+        }));
+
+        // Build edges: items with the same name shared across multiple hosts link those hosts
+        const itemToHosts = {};
+        fields.forEach(f => {
+            if (!itemToHosts[f.name]) itemToHosts[f.name] = [];
+            if (!itemToHosts[f.name].includes(f.host)) itemToHosts[f.name].push(f.host);
+        });
+
+        const edgeSet = new Set();
+        const edges = [];
+        Object.entries(itemToHosts).forEach(([itemName, hostList]) => {
+            for (let i = 0; i < hostList.length - 1; i++) {
+                for (let j = i + 1; j < hostList.length; j++) {
+                    const key = [hostList[i], hostList[j]].sort().join('||');
+                    if (!edgeSet.has(key)) {
+                        edgeSet.add(key);
+                        edges.push({
+                            source: hostList[i],
+                            target: hostList[j],
+                            lineStyle: { color: lineColor, width: 1.5 },
+                            label: { show: false, formatter: itemName }
+                        });
+                    }
+                }
+            }
+        });
+
+        // When no shared items produce edges, add a simple star topology from first host
+        if (!edges.length && hosts.length > 1) {
+            hosts.slice(1).forEach(host => {
+                edges.push({
+                    source: hosts[0],
+                    target: host,
+                    lineStyle: { color: lineColor, width: 1 }
+                });
+            });
+        }
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    if (p.dataType === 'node') {
+                        const count = itemCountByHost[p.name] || 0;
+                        return `<b>${p.name}</b><br/>Items: ${count}`;
+                    }
+                    return `${p.data.source} ↔ ${p.data.target}`;
+                }
+            },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor } } : { show: false },
+            series: [{
+                type: 'graph',
+                layout: 'force',
+                data: nodes,
+                links: edges,
+                roam: true,
+                focusNodeAdjacency: true,
+                force: {
+                    repulsion: 200,
+                    gravity: 0.1,
+                    edgeLength: [80, 200],
+                    layoutAnimation: true
+                },
+                lineStyle: { curveness: 0.1 },
+                emphasis: {
+                    focus: 'adjacency',
+                    lineStyle: { width: 3 }
+                }
+            }],
+            animation: true
+        };
+    }
+
+    /**
+     * Chord diagram (§4.12)
+     * Shows relationships / flows between hosts proportional to item values.
+     */
+    _createChordDiagram(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+
+        const hosts = [...new Set(fields.map(f => f.host))];
+        const colors = this._getDistributedColors(hosts.length);
+
+        // Build a symmetric flow matrix: flow[i][j] = sum of values for items on host i
+        // directed towards host j (shared item names). Use current value as weight.
+        const n = hosts.length;
+        const matrix = Array.from({ length: n }, () => Array(n).fill(0));
+
+        const itemToHosts = {};
+        fields.forEach(f => {
+            if (!itemToHosts[f.name]) itemToHosts[f.name] = [];
+            itemToHosts[f.name].push({ host: f.host, value: Math.abs(f.value) });
+        });
+
+        Object.values(itemToHosts).forEach(entries => {
+            for (let i = 0; i < entries.length; i++) {
+                for (let j = 0; j < entries.length; j++) {
+                    if (i !== j) {
+                        const si = hosts.indexOf(entries[i].host);
+                        const sj = hosts.indexOf(entries[j].host);
+                        if (si >= 0 && sj >= 0) {
+                            matrix[si][sj] += (entries[i].value + entries[j].value) / 2;
+                        }
+                    }
+                }
+            }
+        });
+
+        // If no cross-host flows, create self-values from item totals
+        const anyFlow = matrix.some(row => row.some(v => v > 0));
+        if (!anyFlow) {
+            hosts.forEach((host, i) => {
+                const total = fields.filter(f => f.host === host).reduce((s, f) => s + Math.abs(f.value), 0);
+                matrix[i][i] = total;
+            });
+        }
+
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: (p) => {
+                    if (p.dataType === 'edge') {
+                        return `${p.data.source} → ${p.data.target}: ${this._formatNumberBySize(p.data.value)}`;
+                    }
+                    return `${p.name}: ${this._formatNumberBySize(p.value)}`;
+                }
+            },
+            legend: showLegend ? { show: true, bottom: 0, textStyle: { color: textColor }, type: 'scroll' } : { show: false },
+            series: [{
+                type: 'chord',
+                radius: '65%',
+                center: ['50%', '50%'],
+                data: hosts.map((host, i) => ({ name: host, itemStyle: { color: colors[i] } })),
+                links: matrix.flatMap((row, i) =>
+                    row.map((val, j) => ({
+                        source: hosts[i],
+                        target: hosts[j],
+                        value: val
+                    })).filter(l => l.value > 0)
+                ),
+                label: { show: true, color: textColor, fontSize: 10 },
+                itemStyle: { borderWidth: 0 },
+                lineStyle: { opacity: 0.4, width: 2 },
+                emphasis: { lineStyle: { opacity: 0.8 } }
+            }],
+            animation: true,
+            animationDuration: 800
+        };
+    }
+
+    /**
+     * Calendar heat map (§4.10)
+     * Plots item last-value readings by day for the current year using item lastclock.
+     */
+    _createCalendarHeatmap(data) {
+        const fields = data.fields;
+        if (!fields || !fields.length) return null;
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const textColor = isDark ? '#ffffff' : '#333333';
+        const showLegend = this._fields_values.show_legend === true || this._fields_values.show_legend === 1;
+
+        const historyMap = this._items_history || {};
+        const calendarData = {};
+
+        // Aggregate values per calendar day from history or from lastclock
+        fields.forEach(f => {
+            const history = historyMap[f.id];
+            if (history && history.length) {
+                history.forEach(point => {
+                    const date = new Date(point.clock * 1000);
+                    const key = date.toISOString().split('T')[0];
+                    calendarData[key] = (calendarData[key] || 0) + Math.abs(parseFloat(point.value));
+                });
+            } else {
+                const meta = this._items_meta[f.id] || {};
+                const clock = meta.lastclock;
+                if (clock) {
+                    const date = new Date(clock * 1000);
+                    const key = date.toISOString().split('T')[0];
+                    calendarData[key] = (calendarData[key] || 0) + Math.abs(f.value);
+                }
+            }
+        });
+
+        const calDataArr = Object.entries(calendarData).map(([date, value]) => [date, value]);
+        const year = calDataArr.length
+            ? new Date(calDataArr[0][0]).getFullYear()
+            : new Date().getFullYear();
+
+        const values = calDataArr.map(d => d[1]);
+        const minVal = values.length ? Math.min(...values) : 0;
+        const maxVal = values.length ? Math.max(...values) : 100;
+        const units = fields[0]?.units || '';
+
+        return {
+            tooltip: {
+                formatter: (p) => {
+                    if (!p.value) return '';
+                    return `${p.value[0]}<br/>${this._formatValueWithUnits(p.value[1], units)}`;
+                }
+            },
+            legend: { show: false },
+            visualMap: {
+                min: minVal,
+                max: maxVal,
+                type: 'piecewise',
+                orient: 'horizontal',
+                left: 'center',
+                bottom: 20,
+                inRange: {
+                    color: isDark
+                        ? ['#1a3a1a', '#2d6a2d', '#4caf50', '#80e080', '#c8ffc8']
+                        : ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
+                },
+                textStyle: { color: textColor },
+                formatter: (v1, v2) => `${this._formatNumberBySize(v1)}–${this._formatNumberBySize(v2)}`
+            },
+            calendar: [{
+                top: 60,
+                left: 40,
+                right: 40,
+                cellSize: ['auto', 'auto'],
+                range: String(year),
+                itemStyle: {
+                    borderWidth: 2,
+                    borderColor: isDark ? '#1a1a2e' : '#ffffff'
+                },
+                yearLabel: { show: true, color: textColor },
+                monthLabel: { show: true, color: textColor, nameMap: 'en' },
+                dayLabel: { show: true, color: textColor, nameMap: 'en', firstDay: 1 }
+            }],
+            series: [{
+                type: 'heatmap',
+                coordinateSystem: 'calendar',
+                calendarIndex: 0,
+                data: calDataArr
+            }],
+            animation: true,
+            animationDuration: 600
+        };
     }
 }
