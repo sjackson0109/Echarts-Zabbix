@@ -36,8 +36,60 @@ class WidgetEcharts extends CWidget {
     static DISPLAY_TYPE_GRAPH = 25;
     static DISPLAY_TYPE_CHORD = 26;
     static DISPLAY_TYPE_CALENDAR = 27;
-    
 
+    // Phase 1 chart capability declarations.
+    // Each entry declares the input shape and data sources consumed by the chart.
+    // Charts absent from this map are not supported in Phase 1.
+    static CHART_CAPABILITIES = {
+        [15]: { // DISPLAY_TYPE_COLUMN
+            chartType: 'column',
+            inputShape: 'item_series',
+            dataSources: ['items_data', 'items_meta'],
+            supported: true
+        },
+        [16]: { // DISPLAY_TYPE_STACKED_BAR
+            chartType: 'stacked_bar',
+            inputShape: 'host_item_matrix',
+            dataSources: ['items_data', 'items_meta'],
+            supported: true
+        },
+        [17]: { // DISPLAY_TYPE_DOUGHNUT
+            chartType: 'doughnut',
+            inputShape: 'item_series',
+            dataSources: ['items_data', 'items_meta'],
+            supported: true
+        },
+        [19]: { // DISPLAY_TYPE_RADAR
+            chartType: 'radar',
+            inputShape: 'host_item_matrix',
+            dataSources: ['items_data', 'items_meta'],
+            supported: true
+        },
+        [20]: { // DISPLAY_TYPE_HEATMAP
+            chartType: 'heatmap',
+            inputShape: 'host_item_matrix',
+            dataSources: ['items_data', 'items_meta'],
+            supported: true
+        },
+        [22]: { // DISPLAY_TYPE_BUBBLE
+            chartType: 'bubble',
+            inputShape: 'item_series',
+            dataSources: ['items_data', 'items_meta'],
+            supported: true
+        },
+        [27]: { // DISPLAY_TYPE_CALENDAR
+            chartType: 'calendar',
+            inputShape: 'time_series',
+            dataSources: ['items_history', 'items_meta'],
+            supported: true
+        },
+        [18]: { chartType: 'bullet',      supported: false, reason: 'Requires structured target data not available in Phase 1.' },
+        [21]: { chartType: 'candlestick', supported: false, reason: 'Requires OHLC data not available in Phase 1.' },
+        [23]: { chartType: 'gantt',       supported: false, reason: 'Requires task start/end data not available in Phase 1.' },
+        [24]: { chartType: 'tree',        supported: false, reason: 'Requires hierarchical relationship data not available in Phase 1.' },
+        [25]: { chartType: 'network',     supported: false, reason: 'Requires network topology data not available in Phase 1.' },
+        [26]: { chartType: 'chord',       supported: false, reason: 'Requires flow/relationship data not available in Phase 1.' }
+    };
 
     // Constants for trigger severity
     static TRIGGER_SEVERITY_COLORS = {
@@ -445,36 +497,30 @@ class WidgetEcharts extends CWidget {
                 case WidgetEcharts.DISPLAY_TYPE_DOUGHNUT:
                     options = this._createDoughnutChart(data);
                     break;
-                case WidgetEcharts.DISPLAY_TYPE_BULLET:
-                    options = this._createBulletChart(data);
-                    break;
                 case WidgetEcharts.DISPLAY_TYPE_RADAR:
                     options = this._createRadarChart(data);
                     break;
                 case WidgetEcharts.DISPLAY_TYPE_HEATMAP:
                     options = this._createHeatmapChart(data);
                     break;
-                case WidgetEcharts.DISPLAY_TYPE_CANDLESTICK:
-                    options = this._createCandlestickChart(data);
-                    break;
                 case WidgetEcharts.DISPLAY_TYPE_BUBBLE:
                     options = this._createBubbleChart(data);
-                    break;
-                case WidgetEcharts.DISPLAY_TYPE_GANTT:
-                    options = this._createGanttChart(data);
-                    break;
-                case WidgetEcharts.DISPLAY_TYPE_TREE:
-                    options = this._createTreeDiagram(data);
-                    break;
-                case WidgetEcharts.DISPLAY_TYPE_GRAPH:
-                    options = this._createNetworkDiagram(data);
-                    break;
-                case WidgetEcharts.DISPLAY_TYPE_CHORD:
-                    options = this._createChordDiagram(data);
                     break;
                 case WidgetEcharts.DISPLAY_TYPE_CALENDAR:
                     options = this._createCalendarHeatmap(data);
                     break;
+                case WidgetEcharts.DISPLAY_TYPE_BULLET:
+                case WidgetEcharts.DISPLAY_TYPE_CANDLESTICK:
+                case WidgetEcharts.DISPLAY_TYPE_GANTT:
+                case WidgetEcharts.DISPLAY_TYPE_TREE:
+                case WidgetEcharts.DISPLAY_TYPE_GRAPH:
+                case WidgetEcharts.DISPLAY_TYPE_CHORD: {
+                    const cap = WidgetEcharts.CHART_CAPABILITIES[displayType];
+                    const chartName = cap ? cap.chartType : `type-${displayType}`;
+                    const reason = cap ? cap.reason : 'Chart type not supported in Phase 1.';
+                    this._showChartError(`Chart type "${chartName}" is not available: ${reason}`);
+                    return;
+                }
                 default:
                     console.error('Unsupported chart type:', displayType);
                     return;
@@ -521,6 +567,35 @@ class WidgetEcharts extends CWidget {
         }
         catch (error) {
             console.error('Error updating chart:', error);
+        }
+    }
+
+    /**
+     * Display an explicit validation error inside the chart container.
+     * Used when a chart type is not supported in Phase 1.
+     * @param {string} message - Human-readable error description.
+     */
+    _showChartError(message) {
+        console.error('[EchartsWidget] Chart validation error:', message);
+        if (this._chart) {
+            this._chart.clear();
+            this._chart.setOption({
+                backgroundColor: 'transparent',
+                graphic: [{
+                    type: 'text',
+                    left: 'center',
+                    top: 'middle',
+                    style: {
+                        text: message,
+                        fontSize: 13,
+                        fill: '#ee6666',
+                        textAlign: 'center',
+                        // Use 85% of container width so the text doesn't touch the edges
+                        width: this._chart_container ? this._chart_container.clientWidth * 0.85 : 300,
+                        overflow: 'break'
+                    }
+                }]
+            }, true);
         }
     }
 

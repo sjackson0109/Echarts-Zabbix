@@ -99,15 +99,9 @@ class WidgetForm extends CWidgetForm {
                 self::DISPLAY_TYPE_COLUMN => _('Vertical Column Chart'),
                 self::DISPLAY_TYPE_STACKED_BAR => _('Stacked Bar Chart'),
                 self::DISPLAY_TYPE_DOUGHNUT => _('Doughnut Chart'),
-                self::DISPLAY_TYPE_BULLET => _('Bullet Graph'),
                 self::DISPLAY_TYPE_RADAR => _('Radar Chart'),
                 self::DISPLAY_TYPE_HEATMAP => _('Heat Map'),
-                self::DISPLAY_TYPE_CANDLESTICK => _('Candlestick Chart'),
                 self::DISPLAY_TYPE_BUBBLE => _('Bubble Chart'),
-                self::DISPLAY_TYPE_GANTT => _('Gantt Chart'),
-                self::DISPLAY_TYPE_TREE => _('Tree Diagram'),
-                self::DISPLAY_TYPE_GRAPH => _('Network Diagram'),
-                self::DISPLAY_TYPE_CHORD => _('Chord Diagram'),
                 self::DISPLAY_TYPE_CALENDAR => _('Calendar Heat Map')
             ]))
                 ->setDefault(self::DISPLAY_TYPE_GAUGE)

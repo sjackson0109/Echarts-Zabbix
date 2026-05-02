@@ -154,10 +154,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 		// Verificar se é um gráfico temporal e buscar dados históricos
 		$display_type = $this->fields_values['display_type'] ?? WidgetForm::DISPLAY_TYPE_GAUGE;
-		if ($display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_LINE || 
+		if ($display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_LINE ||
 			$display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_AREA ||
 			$display_type == WidgetForm::DISPLAY_TYPE_AREA_RAINFALL ||
-			$display_type == WidgetForm::DISPLAY_TYPE_CANDLESTICK ||
 			$display_type == WidgetForm::DISPLAY_TYPE_CALENDAR) {
 			
 			$items_history = $this->getHistoricalData($db_items);
@@ -299,10 +298,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 		// Show time period info for temporal charts
 		$display_type = $this->fields_values['display_type'] ?? WidgetForm::DISPLAY_TYPE_GAUGE;
-		if (($display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_LINE || 
+		if (($display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_LINE ||
 			 $display_type == WidgetForm::DISPLAY_TYPE_TEMPORAL_AREA ||
 			 $display_type == WidgetForm::DISPLAY_TYPE_AREA_RAINFALL ||
-			 $display_type == WidgetForm::DISPLAY_TYPE_CANDLESTICK ||
 			 $display_type == WidgetForm::DISPLAY_TYPE_CALENDAR) &&
 			!empty($this->fields_values['time_period']) &&
 			isset($this->fields_values['time_period']['from']) &&
